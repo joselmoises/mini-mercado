@@ -25,6 +25,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const searchQuery = ref('');
+const addingToCart = ref<Record<number, boolean>>({});
 
 // Validar entrada de pesquisa (apenas letras, números e espaços)
 const sanitizeSearchInput = (event: Event) => {
@@ -52,7 +53,13 @@ const clearSearch = () => {
 };
 
 const addToCart = (productId: number) => {
+    // Prevenir duplo clique
+    if (addingToCart.value[productId]) {
+        return;
+    }
+
     const product = props.products.find(p => p.id === productId);
+    addingToCart.value[productId] = true;
 
     router.post('/cart', {
         product_id: productId,
@@ -63,11 +70,13 @@ const addToCart = (productId: number) => {
             toast.success('Produto adicionado!', {
                 description: `${product?.name} foi adicionado ao carrinho`
             });
+            addingToCart.value[productId] = false;
         },
         onError: () => {
             toast.error('Erro ao adicionar', {
                 description: 'Não foi possível adicionar o produto ao carrinho'
             });
+            addingToCart.value[productId] = false;
         }
     });
 };
@@ -196,13 +205,13 @@ const getCardStyle = (index: number) => {
                             <!-- Add to Cart Button -->
                             <Button
                                 @click="addToCart(product.id)"
-                                :disabled="product.stock === 0"
+                                :disabled="product.stock === 0 || addingToCart[product.id]"
                                 class="w-full cursor-pointer py-4 sm:py-6 text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all"
                                 :class="product.stock === 0 ? 'bg-gray-300' : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'"
                             >
                                 <ShoppingCart class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-                                <span class="hidden sm:inline">{{ product.stock === 0 ? 'Esgotado' : 'Adicionar ao Carrinho' }}</span>
-                                <span class="inline sm:hidden">{{ product.stock === 0 ? 'Esgotado' : 'Adicionar' }}</span>
+                                <span class="hidden sm:inline">{{ addingToCart[product.id] ? 'Adicionando...' : product.stock === 0 ? 'Esgotado' : 'Adicionar ao Carrinho' }}</span>
+                                <span class="inline sm:hidden">{{ addingToCart[product.id] ? 'Adicionando...' : product.stock === 0 ? 'Esgotado' : 'Adicionar' }}</span>
                             </Button>
                         </div>
                     </div>

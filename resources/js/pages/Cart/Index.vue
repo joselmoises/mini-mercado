@@ -32,6 +32,10 @@ const quantities = ref<Record<number, number>>(
     Object.fromEntries(props.cartItems.map(item => [item.id, item.quantity]))
 );
 
+const updateTimeouts = ref<Record<number, number>>({});
+const isUpdating = ref<Record<number, boolean>>({});
+const isRemoving = ref<Record<number, boolean>>({});
+
 // Validar quantidade (apenas números positivos)
 const sanitizeQuantity = (itemId: number, event: Event) => {
     const input = event.target as HTMLInputElement;
@@ -55,18 +59,42 @@ const updateQuantity = (itemId: number) => {
         return;
     }
 
-    router.patch(`/cart/${itemId}`, {
-        quantity: quantity
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Quantidade atualizada!');
+    // Limpar timeout anterior se existir
+    if (updateTimeouts.value[itemId]) {
+        clearTimeout(updateTimeouts.value[itemId]);
+    }
+
+    // Criar debounce de 500ms
+    updateTimeouts.value[itemId] = window.setTimeout(() => {
+        if (isUpdating.value[itemId]) {
+            return;
         }
-    });
+
+        isUpdating.value[itemId] = true;
+
+        router.patch(`/cart/${itemId}`, {
+            quantity: quantity
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Quantidade atualizada!');
+                isUpdating.value[itemId] = false;
+            },
+            onError: () => {
+                isUpdating.value[itemId] = false;
+            }
+        });
+    }, 500);
 };
 
 const removeItem = (itemId: number) => {
+    // Prevenir duplo clique
+    if (isRemoving.value[itemId]) {
+        return;
+    }
+
     const item = props.cartItems.find(i => i.id === itemId);
+    isRemoving.value[itemId] = true;
 
     router.delete(`/cart/${itemId}`, {
         preserveScroll: true,
@@ -74,6 +102,10 @@ const removeItem = (itemId: number) => {
             toast.success('Item removido', {
                 description: `${item?.product.name} foi removido do carrinho`
             });
+            isRemoving.value[itemId] = false;
+        },
+        onError: () => {
+            isRemoving.value[itemId] = false;
         }
     });
 };
@@ -130,7 +162,7 @@ const formatPrice = (price: number) => {
                                                     min="1"
                                                     max="999"
                                                     @input="(e: Event) => sanitizeQuantity(item.id, e)"
-                                                    @change="updateQuantity(item.id)"
+                                                    @blur="updateQuantity(item.id)"
                                                     class="w-16 h-9"
                                                 />
                                             </div>
@@ -148,7 +180,7 @@ const formatPrice = (price: number) => {
                                             min="1"
                                             max="999"
                                             @input="(e: Event) => sanitizeQuantity(item.id, e)"
-                                            @change="updateQuantity(item.id)"
+                                            @blur="updateQuantity(item.id)"
                                             class="w-20"
                                         />
                                     </div>
@@ -165,6 +197,7 @@ const formatPrice = (price: number) => {
                                         variant="destructive"
                                         size="icon"
                                         @click="removeItem(item.id)"
+                                        :disabled="isRemoving[item.id]"
                                         class="self-end sm:self-center"
                                     >
                                         <Trash2 class="w-4 h-4" />
