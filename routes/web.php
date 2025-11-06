@@ -19,19 +19,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'store'])
         ->name('cart.store')
-        ->middleware('throttle:20,1'); // 20 requisições por minuto
+        ->middleware('throttle:60,1'); // 60 requisições por minuto
     Route::patch('/cart/{cartItem}', [CartController::class, 'update'])
         ->name('cart.update')
-        ->middleware('throttle:20,1');
+        ->middleware('throttle:60,1');
     Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])
         ->name('cart.destroy')
-        ->middleware('throttle:20,1');
+        ->middleware('throttle:60,1');
 
     // Order routes
     Route::get('/checkout', [OrderController::class, 'checkout'])->name('checkout');
     Route::post('/orders', [OrderController::class, 'store'])
         ->name('orders.store')
-        ->middleware('throttle:5,1'); // 5 pedidos por minuto (ação crítica)
+        ->middleware('throttle:10,1'); // 10 pedidos por minuto
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 });
