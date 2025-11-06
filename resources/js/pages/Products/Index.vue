@@ -58,6 +58,7 @@ const addToCart = (productId: number) => {
         product_id: productId,
         quantity: 1
     }, {
+        preserveScroll: true,
         onSuccess: () => {
             toast.success('Produto adicionado!', {
                 description: `${product?.name} foi adicionado ao carrinho`
